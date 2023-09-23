@@ -22,7 +22,7 @@ namespace Lunacy.Logging
                 filePath ??= "UNKN";
                 memberName ??= "UNKN";
 
-                DateTime logTime = DateTime.Now; //sasd
+                DateTime logTime = DateTime.Now;
 
                 AssemblyExplorer.CallerInfo callerInfo = AssemblyExplorer.GetCallerInfo(skipThisAssembly: true);
                 if(callerInfo.Equals(AssemblyExplorer.CallerInfo.Unknown)) {
