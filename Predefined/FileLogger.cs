@@ -98,7 +98,7 @@ namespace Lunacy.Logging.Predefined {
                         }
                     }
 
-                    File.WriteAllText(ActiveFilePath, entry.ToString() + '\n');
+                    File.AppendAllText(ActiveFilePath, entry.ToString() + '\n');
 
                 } catch(Exception ex) {
                     Logger.Disable(this);

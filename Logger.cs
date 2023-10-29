@@ -5,20 +5,32 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Lunacy.Logging
-{
+namespace Lunacy.Logging {
     public static class Logger {
 
         private static readonly ConcurrentDictionary<ILogger, bool> Handlers = new();
         private static volatile bool Enabled = false;
         private static readonly object _lock = new();
 
-        public static LogEntry Log(string message, LogSeverity severity = LogSeverity.Normal, LogType type = LogType.Info, 
-            [CallerFilePath] string? filePath = default, 
-            [CallerMemberName] string? memberName = default, 
+        public static void LogFast(string message, LogSeverity severity = LogSeverity.Normal, LogType type = LogType.Info,
+            [CallerFilePath] string? filePath = default,
+            [CallerMemberName] string? memberName = default,
+            [CallerLineNumber] int lineNumber = 0) {
+            _ = LogAsync(message, severity, type, filePath, memberName, lineNumber);
+        }
+
+        public static async Task<LogEntry> LogAsync(string message, LogSeverity severity = LogSeverity.Normal, LogType type = LogType.Info,
+            [CallerFilePath] string? filePath = default,
+            [CallerMemberName] string? memberName = default,
+            [CallerLineNumber] int lineNumber = 0) {
+            return await Task.Run(() => Log(message, severity, type, filePath, memberName, lineNumber));
+        }
+        public static LogEntry Log(string message, LogSeverity severity = LogSeverity.Normal, LogType type = LogType.Info,
+            [CallerFilePath] string? filePath = default,
+            [CallerMemberName] string? memberName = default,
             [CallerLineNumber] int lineNumber = 0) {
 
-            lock(_lock) { 
+            lock(_lock) {
                 filePath ??= "UNKN";
                 memberName ??= "UNKN";
 
@@ -56,42 +68,42 @@ namespace Lunacy.Logging
         }
 
         public static bool AddLogger(ILogger logger) {
-                return Handlers.TryAdd(logger, true);
+            return Handlers.TryAdd(logger, true);
         }
 
         public static bool AddLogger<T>() where T : ILogger, new() {
-                foreach((ILogger logger, bool _) in Handlers) {
-                    if(logger.GetType().IsEquivalentTo(typeof(T))) {
-                        throw new InvalidOperationException("A logger of the same type has already been added. " +
-                            "If this was intentional, please use the explicit AddLogger method.");
-                    }
+            foreach((ILogger logger, bool _) in Handlers) {
+                if(logger.GetType().IsEquivalentTo(typeof(T))) {
+                    throw new InvalidOperationException("A logger of the same type has already been added. " +
+                        "If this was intentional, please use the explicit AddLogger method.");
                 }
+            }
 
-                return Handlers.TryAdd(new T(), true);
+            return Handlers.TryAdd(new T(), true);
         }
 
         public static T? GetLogger<T>() where T : ILogger, new() {
-                foreach((ILogger logger, bool _) in Handlers) {
-                    if(logger.GetType().IsEquivalentTo(typeof(T))) {
-                        return (T)logger;
-                    }
+            foreach((ILogger logger, bool _) in Handlers) {
+                if(logger.GetType().IsEquivalentTo(typeof(T))) {
+                    return (T)logger;
                 }
+            }
 
-                return default;
+            return default;
         }
 
         public static bool RemoveLogger<T>() where T : ILogger, new() {
-                foreach((ILogger logger, bool _) in Handlers.ToList()) {
-                    if(logger.GetType().IsEquivalentTo(typeof(T))) {
-                        return Handlers.Remove(logger, out _);
-                    }
+            foreach((ILogger logger, bool _) in Handlers.ToList()) {
+                if(logger.GetType().IsEquivalentTo(typeof(T))) {
+                    return Handlers.Remove(logger, out _);
                 }
+            }
 
-                return false;
+            return false;
         }
 
         public static bool RemoveLogger(ILogger logger) {
-                return Handlers.TryRemove(logger, out _);
+            return Handlers.TryRemove(logger, out _);
         }
 
         public static bool Enable() {
